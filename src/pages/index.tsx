@@ -64,7 +64,7 @@ export default function Home(props: HomeProps) {
     { Icon: Donut, label: "Carbs", value: `${n.carbs} g` },
     { Icon: Amphora, label: "Fat", value: `${n.fat} g` },
     { Icon: Leaf, label: "Fiber", value: `${n.fiber} g` },
-    { Icon: Popcorn, label: "Sodium", value: `${n.sodium} g` },
+    { Icon: Popcorn, label: "Sodium", value: `${n.sodium} mg` },
   ];
 
   return (
