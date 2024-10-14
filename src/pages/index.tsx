@@ -50,7 +50,7 @@ export default function Home(props: HomeProps) {
             was too lazy to code a proper error screen, so here&apos;s the ugly
             details:
           </p>
-          <pre>{props.errorMessage}</pre>;
+          <pre>{props.errorMessage}</pre>
         </main>
       </div>
     );
@@ -136,10 +136,10 @@ export const getServerSideProps = withSession(async (ctx) => {
     const props = await fitbit.createFoodLog(foodLogPayload);
     return { props };
   } catch (e) {
+    console.warn(e);
     if (e instanceof Error) {
       return { props: { errorMessage: e.message } };
     } else {
-      console.warn(e);
       return {
         props: { errorMessage: "Unknown error, check the server logs" },
       };
