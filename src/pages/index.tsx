@@ -1,37 +1,27 @@
-import localFont from "next/font/local";
+import { isPast, subMinutes } from "date-fns";
 import {
-  Tag,
-  CircleCheckBig,
-  Flame,
   Amphora,
-  Drumstick,
-  Popcorn,
-  Leaf,
+  CircleCheckBig,
   Donut,
+  Drumstick,
+  Flame,
+  Leaf,
+  Popcorn,
+  Tag,
 } from "lucide-react";
 import { beginLogin, refreshTokenSet } from "../auth/auth";
-import { withSession } from "../session";
 import {
   CreateFoodLogResponse,
   createFoodLogSchema,
   FitBitApi,
 } from "../fitbit";
-import { isPast, subMinutes } from "date-fns";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+import { Layout } from "../Layout";
+import { withSession } from "../session";
 
 export type HomeProps = CreateFoodLogResponse | ErrorProps;
 interface ErrorProps {
   errorMessage: string;
+  retryUrl: string;
 }
 
 function hasError(props: HomeProps): props is ErrorProps {
@@ -41,18 +31,17 @@ function hasError(props: HomeProps): props is ErrorProps {
 export default function Home(props: HomeProps) {
   if (hasError(props)) {
     return (
-      <div
-        className={`${geistSans.variable} ${geistMono.variable} flex justify-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-      >
-        <main className="flex flex-col gap-8 row-start-2 items-center ">
-          <p>
-            Oh no! Something went wrong when sending the food log to FitBit. I
-            was too lazy to code a proper error screen, so here&apos;s the ugly
-            details:
-          </p>
-          <pre>{props.errorMessage}</pre>
-        </main>
-      </div>
+      <Layout>
+        <p>
+          Oh no! Something went wrong when sending the food log to FitBit. I was
+          too lazy to code a proper error screen, you can see the ugly details
+          below.
+        </p>
+        <a className="underline" href={props.retryUrl}>
+          Re-authenticate and try again
+        </a>
+        <pre className="w-full overflow-scroll">{props.errorMessage}</pre>
+      </Layout>
     );
   }
 
@@ -68,12 +57,10 @@ export default function Home(props: HomeProps) {
   ];
 
   return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} flex justify-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-8 row-start-2 items-center ">
-        <h1 className="flex flex-row gap-2 font-bold">
-          <CircleCheckBig color="green" /> Logged with FitBit
+    <Layout>
+      <div className="max-w-md gap-2 flex flex-col">
+        <h1 className="flex flex-row gap-2 font-bold justify-center">
+          <CircleCheckBig color="green" /> Logged with FitBit{" "}
         </h1>
         <ul className="flex flex-col gap-1">
           {values.map(({ Icon, label, value }) => (
@@ -86,8 +73,8 @@ export default function Home(props: HomeProps) {
             </li>
           ))}
         </ul>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }
 
@@ -107,6 +94,10 @@ export const getServerSideProps = withSession(async (ctx) => {
       },
     };
   } else if (isPast(subMinutes(ctx.session.data.tokenSet.expiresAt, 1))) {
+    console.log(
+      "Refreshing tokens because access token expires at",
+      ctx.session.data.tokenSet.expiresAt
+    );
     try {
       const tokenSet = await refreshTokenSet(
         ctx.session.data.tokenSet.refresh_token
@@ -137,11 +128,19 @@ export const getServerSideProps = withSession(async (ctx) => {
     return { props };
   } catch (e) {
     console.warn(e);
+    const retryUrl = `/api/auth/logout?returnTo=${encodeURIComponent(
+      ctx.resolvedUrl
+    )}`;
     if (e instanceof Error) {
-      return { props: { errorMessage: e.message } };
+      return {
+        props: { errorMessage: e.message, retryUrl },
+      };
     } else {
       return {
-        props: { errorMessage: "Unknown error, check the server logs" },
+        props: {
+          errorMessage: "Unknown error, check the server logs",
+          retryUrl,
+        },
       };
     }
   }
