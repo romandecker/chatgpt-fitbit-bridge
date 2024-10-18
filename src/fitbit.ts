@@ -1,6 +1,9 @@
 import axios, { AxiosInstance } from "axios";
+import { listTimeZones } from "timezone-support";
 import { TokenSet } from "./auth/auth";
 import { z } from "zod";
+import { toZonedTime } from "date-fns-tz";
+import { format } from "date-fns";
 
 export const mealTypes = {
   1: "Breakfast",
@@ -13,16 +16,12 @@ export const mealTypes = {
 
 export const createFoodLogSchema = z.object({
   foodName: z.string(),
-  mealTypeId: z.union([
-    z.literal("1").describe("Breakfast"),
-    z.literal("2").describe("Morning Snack"),
-    z.literal("3").describe("Lunch"),
-    z.literal("4").describe("Afternoon Snack"),
-    z.literal("5").describe("Dinner"),
-    z.literal("7").describe("Anytime"),
-  ]),
+  timestamp: z.coerce.date().optional(),
+  tz: z
+    .string()
+    .default("Europe/Vienna")
+    .refine((str) => listTimeZones().includes(str)),
   amount: z.coerce.number(),
-  date: z.string(),
   brandName: z.string().optional(),
   calories: z.coerce.number(),
   totalCarbohydrate: z.coerce.number().optional(),
@@ -100,14 +99,38 @@ export class FitBitApi {
     return resp.data;
   }
 
-  async createFoodLog(payload: FoodLogPayload) {
+  async createFoodLog({ tz, timestamp, ...payload }: FoodLogPayload) {
+    if (!timestamp) {
+      timestamp = toZonedTime(new Date(), tz);
+    }
+
     const resp = await this.axios.post(`/user/-/foods/log.json`, undefined, {
       params: {
         ...payload,
+        mealTypeId: getMealTypeId(timestamp),
+        date: format(timestamp, "yyyy-MM-dd"),
         unitId: 304, // "servings"
       },
     });
 
     return createFoodLogResponseSchema.parse(resp.data);
+  }
+}
+
+function getMealTypeId(timestamp: Date) {
+  const formatted = format(timestamp, "HH:mm");
+
+  if ("05:00" <= formatted && formatted < "10:00") {
+    return 1;
+  } else if ("10:00" <= formatted && formatted < "11:30") {
+    return 2;
+  } else if ("11:30" <= formatted && formatted < "14:00") {
+    return 3;
+  } else if ("14:00" <= formatted && formatted < "16:30") {
+    return 4;
+  } else if ("16:30" <= formatted && formatted < "21:00") {
+    return 5;
+  } else {
+    return 7;
   }
 }

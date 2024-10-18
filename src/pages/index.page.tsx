@@ -1,25 +1,15 @@
 import { isPast, subMinutes } from "date-fns";
-import {
-  Amphora,
-  CircleCheckBig,
-  Donut,
-  Drumstick,
-  Flame,
-  Leaf,
-  Popcorn,
-  Tag,
-} from "lucide-react";
 import { beginLogin, refreshTokenSet } from "../auth/auth";
-import {
-  CreateFoodLogResponse,
-  createFoodLogSchema,
-  FitBitApi,
-} from "../fitbit";
-import { Layout } from "../components/Layout";
+import { createFoodLogSchema, FitBitApi } from "../fitbit";
+import { Layout } from "./Layout";
 import { withSession } from "../session";
-import { NutritionalValues } from "../components/NutritionalValues/NutritionalValues";
+import {
+  SuccessfulLogPage,
+  SuccessfulLogPageProps,
+} from "./SuccessfulLogPage/SuccessfulLogPage";
+import { z } from "zod";
 
-export type HomeProps = CreateFoodLogResponse | ErrorProps;
+export type HomeProps = SuccessfulLogPageProps | ErrorProps;
 interface ErrorProps {
   errorMessage: string;
   retryUrl: string;
@@ -46,21 +36,7 @@ export default function Home(props: HomeProps) {
     );
   }
 
-  return (
-    <Layout>
-      <div className="max-w-md gap-2 flex flex-col">
-        <h1 className="flex flex-row gap-2 font-bold justify-center">
-          <CircleCheckBig color="green" /> Logged with FitBit{" "}
-        </h1>
-        <NutritionalValues
-          foodName={props.foodLog.loggedFood.name}
-          mealTypeId={props.foodLog.loggedFood.mealTypeId}
-          date={props.foodLog.logDate}
-          {...props.foodLog.nutritionalValues}
-        />
-      </div>
-    </Layout>
-  );
+  return <SuccessfulLogPage {...props} />;
 }
 
 export const getServerSideProps = withSession(async (ctx) => {
@@ -106,11 +82,22 @@ export const getServerSideProps = withSession(async (ctx) => {
 
   try {
     const fitbit = new FitBitApi(ctx.session.data.tokenSet);
-    const foodLogPayload = createFoodLogSchema.parse(ctx.query, {
-      path: ["query parameters"],
-    });
+    const foodLogPayload = createFoodLogSchema
+      .extend({
+        utcOffset: z.number().optional(),
+      })
+      .parse(ctx.query, {
+        path: ["query parameters"],
+      });
     const props = await fitbit.createFoodLog(foodLogPayload);
-    return { props };
+    return {
+      props: {
+        ...props.foodLog.nutritionalValues,
+        date: props.foodDay.date,
+        foodName: props.foodLog.loggedFood.name,
+        mealTypeId: props.foodLog.loggedFood.mealTypeId,
+      } satisfies HomeProps,
+    };
   } catch (e) {
     console.warn(e);
     const retryUrl = `/api/auth/logout?returnTo=${encodeURIComponent(
@@ -129,4 +116,6 @@ export const getServerSideProps = withSession(async (ctx) => {
       };
     }
   }
+
+  return { props: {} };
 });

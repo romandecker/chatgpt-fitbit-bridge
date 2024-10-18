@@ -14,10 +14,10 @@ import {
   Clock,
 } from "lucide-react";
 
-import { CreateFoodLogResponse } from "../../fitbit";
-import { differenceInDays, formatRelative } from "date-fns";
+import { CreateFoodLogResponse } from "../../../fitbit";
+import { differenceInDays } from "date-fns";
 
-type NutritionalValuesProps =
+export type NutritionalValuesProps =
   CreateFoodLogResponse["foodLog"]["nutritionalValues"] & {
     foodName: string;
     mealTypeId: number;
