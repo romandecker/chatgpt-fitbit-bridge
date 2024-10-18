@@ -15,8 +15,9 @@ import {
   createFoodLogSchema,
   FitBitApi,
 } from "../fitbit";
-import { Layout } from "../Layout";
+import { Layout } from "../components/Layout";
 import { withSession } from "../session";
+import { NutritionalValues } from "../components/NutritionalValues/NutritionalValues";
 
 export type HomeProps = CreateFoodLogResponse | ErrorProps;
 interface ErrorProps {
@@ -45,34 +46,18 @@ export default function Home(props: HomeProps) {
     );
   }
 
-  const n = props.foodLog.nutritionalValues;
-  const values = [
-    { Icon: Tag, label: "Name", value: props.foodLog.loggedFood.name },
-    { Icon: Flame, label: "Calories", value: `${n.calories} kcal` },
-    { Icon: Drumstick, label: "Protein", value: `${n.protein} g` },
-    { Icon: Donut, label: "Carbs", value: `${n.carbs} g` },
-    { Icon: Amphora, label: "Fat", value: `${n.fat} g` },
-    { Icon: Leaf, label: "Fiber", value: `${n.fiber} g` },
-    { Icon: Popcorn, label: "Sodium", value: `${n.sodium} mg` },
-  ];
-
   return (
     <Layout>
       <div className="max-w-md gap-2 flex flex-col">
         <h1 className="flex flex-row gap-2 font-bold justify-center">
           <CircleCheckBig color="green" /> Logged with FitBit{" "}
         </h1>
-        <ul className="flex flex-col gap-1">
-          {values.map(({ Icon, label, value }) => (
-            <li className="flex flex-row justify-between" key={label}>
-              <span className="flex flex-row gap-1 mr-2">
-                <Icon />
-                {label}:
-              </span>
-              <span>{value}</span>
-            </li>
-          ))}
-        </ul>
+        <NutritionalValues
+          foodName={props.foodLog.loggedFood.name}
+          mealTypeId={props.foodLog.loggedFood.mealTypeId}
+          date={props.foodLog.logDate}
+          {...props.foodLog.nutritionalValues}
+        />
       </div>
     </Layout>
   );

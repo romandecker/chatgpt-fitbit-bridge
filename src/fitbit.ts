@@ -2,6 +2,15 @@ import axios, { AxiosInstance } from "axios";
 import { TokenSet } from "./auth/auth";
 import { z } from "zod";
 
+export const mealTypes = {
+  1: "Breakfast",
+  2: "Morning Snack",
+  3: "Lunch",
+  4: "Afternoon Snack",
+  5: "Dinner",
+  7: "Anytime",
+};
+
 export const createFoodLogSchema = z.object({
   foodName: z.string(),
   mealTypeId: z.union([
